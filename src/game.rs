@@ -166,7 +166,40 @@ impl Board {
                             }
                         }
                     },
-                    Piece::仕 => {}
+                    Piece::仕 => {
+                        let left_down = match side {
+                            Side::Red => (3usize, 0usize),
+                            Side::Black => (3usize, 7usize),
+                        };
+                        let right_up = match side {
+                            Side::Red => (5usize, 2usize),
+                            Side::Black => (5usize, 9usize),
+                        };
+                        let pos = (from.0 + 1, from.1 + 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 + 1, from.1 - 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 1, from.1 + 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 1, from.1 - 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                    }
                     Piece::相 => {}
                     Piece::炮 => {}
                     Piece::馬 => {}
