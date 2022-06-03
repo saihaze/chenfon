@@ -65,6 +65,18 @@ pub struct Board {
     m_map: [[Option<(Side, Piece)>; 10]; 9],
 }
 
+fn position_inside(
+    pos: (usize, usize),
+    left_down: (usize, usize),
+    right_up: (usize, usize),
+) -> bool {
+    pos.0 >= left_down.0 && pos.0 <= right_up.0 && pos.1 >= left_down.1 && pos.1 <= right_up.1
+}
+
+fn position_inside_board(pos: (usize, usize)) -> bool {
+    position_inside(pos, (0, 0), (8, 9))
+}
+
 impl Board {
     pub fn new() -> Board {
         let mut map: [[Option<(Side, Piece)>; 10]; 9] = [[None; 10]; 9];
@@ -105,14 +117,67 @@ impl Board {
         Board { m_map: map }
     }
 
-    pub fn move_available(&self, from: (usize, usize), to: (usize, usize)) -> bool {
-        let map = &self.m_map;
-        let fpiece = &map[from.0][from.1];
-        let tpiece = &map[to.0][to.1];
+    fn has_friend_at(&self, side: Side, pos: (usize, usize)) -> bool {
+        let piece = self.m_map[pos.0][pos.1];
+        match piece {
+            Some(piece) => piece.0 == side,
+            None => false,
+        }
+    }
+
+    pub fn all_possible_moves(&self, from: (usize, usize)) -> Vec<(usize, usize)> {
+        let fpiece = self.m_map[from.0][from.1];
         match fpiece {
             Some(fpiece) => {
+                let mut ret = Vec::<(usize, usize)>::new();
+                let side = fpiece.0;
+                match fpiece.1 {
+                    Piece::兵 => match side {
+                        Side::Red => {
+                            let pos = (from.0, from.1 + 1);
+                            if position_inside_board(pos) && !self.has_friend_at(side, pos) {
+                                ret.push(pos);
+                            }
+                            if position_inside(pos, (0, 5), (8, 9)) {
+                                let pos = (from.0 + 1, from.1);
+                                if position_inside_board(pos) && !self.has_friend_at(side, pos) {
+                                    ret.push(pos);
+                                }
+                                let pos = (from.0 - 1, from.1);
+                                if position_inside_board(pos) && !self.has_friend_at(side, pos) {
+                                    ret.push(pos);
+                                }
+                            }
+                        }
+                        Side::Black => {
+                            let pos = (from.0, from.1 - 1);
+                            if position_inside_board(pos) && !self.has_friend_at(side, pos) {
+                                ret.push(pos);
+                            }
+                            if position_inside(pos, (0, 0), (8, 4)) {
+                                let pos = (from.0 + 1, from.1);
+                                if position_inside_board(pos) && !self.has_friend_at(side, pos) {
+                                    ret.push(pos);
+                                }
+                                let pos = (from.0 - 1, from.1);
+                                if position_inside_board(pos) && !self.has_friend_at(side, pos) {
+                                    ret.push(pos);
+                                }
+                            }
+                        }
+                    },
+                    Piece::仕 => {}
+                    Piece::相 => {}
+                    Piece::炮 => {}
+                    Piece::馬 => {}
+                    Piece::車 => {}
+                    Piece::帥 => {}
+                }
+                return ret;
             }
-            None => { return false; }
+            None => {
+                return Vec::new();
+            }
         }
     }
 }
