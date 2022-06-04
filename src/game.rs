@@ -125,6 +125,21 @@ impl Board {
         }
     }
 
+    fn piece_count(&self, left_down: (usize, usize), right_up: (usize, usize)) -> i32 {
+        let mut cnt = 0;
+        for x in left_down.0..(right_up.0 + 1) {
+            for y in left_down.1..(right_up.1 + 1) {
+                match self.m_map[x][y] {
+                    Some(_) => {
+                        cnt += 1;
+                    }
+                    None => (),
+                }
+            }
+        }
+        cnt
+    }
+
     pub fn all_possible_moves(&self, from: (usize, usize)) -> Vec<(usize, usize)> {
         let fpiece = self.m_map[from.0][from.1];
         match fpiece {
@@ -200,7 +215,15 @@ impl Board {
                             ret.push(pos);
                         }
                     }
-                    Piece::相 => {}
+                    Piece::相 => {
+                        let left_down = match side {
+                            Side::Red => (0usize, 0usize),
+                            Side::Black => (0usize, 5usize),
+                        };
+                        // TODO
+                        let pos = (from.0 + 2, from.1 + 2);
+                        let check = (from.0 + 1, from.1 + 1);
+                    }
                     Piece::炮 => {}
                     Piece::馬 => {}
                     Piece::車 => {}
