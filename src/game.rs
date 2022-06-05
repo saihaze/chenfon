@@ -1,3 +1,5 @@
+use std::ptr::NonNull;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Red,
@@ -125,6 +127,13 @@ impl Board {
         }
     }
 
+    fn has_piece_at(&self, pos: (usize, usize)) -> bool {
+        match self.m_map[pos.0][pos.1] {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
     fn piece_count(&self, left_down: (usize, usize), right_up: (usize, usize)) -> i32 {
         let mut cnt = 0;
         for x in left_down.0..(right_up.0 + 1) {
@@ -220,12 +229,110 @@ impl Board {
                             Side::Red => (0usize, 0usize),
                             Side::Black => (0usize, 5usize),
                         };
-                        // TODO
+                        let right_up = match side {
+                            Side::Red => (8usize, 4usize),
+                            Side::Black => (8usize, 9usize),
+                        };
                         let pos = (from.0 + 2, from.1 + 2);
                         let check = (from.0 + 1, from.1 + 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 + 2, from.1 - 2);
+                        let check = (from.0 + 1, from.1 - 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 2, from.1 + 2);
+                        let check = (from.0 - 1, from.1 + 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 2, from.1 - 2);
+                        let check = (from.0 - 1, from.1 - 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
                     }
                     Piece::炮 => {}
-                    Piece::馬 => {}
+                    Piece::馬 => {
+                        let pos = (from.0 + 1, from.1 + 2);
+                        let check = (from.0, from.1 + 1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 + 1, from.1 - 2);
+                        let check = (from.0, from.1 - 1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 1, from.1 + 2);
+                        let check = (from.0, from.1 + 1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 1, from.1 - 2);
+                        let check = (from.0, from.1 - 1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 + 2, from.1 + 1);
+                        let check = (from.0 + 1, from.1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 + 2, from.1 - 1);
+                        let check = (from.0 + 1, from.1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 2, from.1 + 1);
+                        let check = (from.0 - 1, from.1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 2, from.1 - 1);
+                        let check = (from.0 - 1, from.1);
+                        if position_inside_board(pos)
+                            && !self.has_piece_at(check)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                    }
                     Piece::車 => {}
                     Piece::帥 => {}
                 }
