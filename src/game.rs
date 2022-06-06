@@ -127,6 +127,10 @@ impl Board {
         }
     }
 
+    fn has_enemy_at(&self, side: Side, pos: (usize, usize)) -> bool {
+        self.has_friend_at(side.other(), pos)
+    }
+
     fn has_piece_at(&self, pos: (usize, usize)) -> bool {
         match self.m_map[pos.0][pos.1] {
             Some(_) => true,
@@ -266,7 +270,64 @@ impl Board {
                             ret.push(pos);
                         }
                     }
-                    Piece::炮 => {}
+                    Piece::炮 => {
+                        for x in 0..(from.0) {
+                            let pos = (x, from.1);
+                            if !self.has_friend_at(side, pos) {
+                                if self.has_piece_at(pos) {
+                                    if self.piece_count(pos, from) == 3 {
+                                        ret.push(pos);
+                                    }
+                                } else {
+                                    if self.piece_count(pos, from) == 2 {
+                                        ret.push(pos);
+                                    }
+                                }
+                            }
+                        }
+                        for x in (from.0 + 1)..9 {
+                            let pos = (x, from.1);
+                            if !self.has_friend_at(side, pos) {
+                                if self.has_piece_at(pos) {
+                                    if self.piece_count(from, pos) == 3 {
+                                        ret.push(pos);
+                                    }
+                                } else {
+                                    if self.piece_count(from, pos) == 2 {
+                                        ret.push(pos);
+                                    }
+                                }
+                            }
+                        }
+                        for y in 0..(from.1) {
+                            let pos = (from.0, y);
+                            if !self.has_friend_at(side, pos) {
+                                if self.has_piece_at(pos) {
+                                    if self.piece_count(pos, from) == 3 {
+                                        ret.push(pos);
+                                    }
+                                } else {
+                                    if self.piece_count(pos, from) == 2 {
+                                        ret.push(pos);
+                                    }
+                                }
+                            }
+                        }
+                        for y in (from.1 + 1)..10 {
+                            let pos = (from.0, y);
+                            if !self.has_friend_at(side, pos) {
+                                if self.has_piece_at(pos) {
+                                    if self.piece_count(from, pos) == 3 {
+                                        ret.push(pos);
+                                    }
+                                } else {
+                                    if self.piece_count(from, pos) == 2 {
+                                        ret.push(pos);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Piece::馬 => {
                         let pos = (from.0 + 1, from.1 + 2);
                         let check = (from.0, from.1 + 1);
@@ -333,8 +394,95 @@ impl Board {
                             ret.push(pos);
                         }
                     }
-                    Piece::車 => {}
-                    Piece::帥 => {}
+                    Piece::車 => {
+                        for x in 0..(from.0) {
+                            let pos = (x, from.1);
+                            if !self.has_friend_at(side, pos) {
+                                if self.piece_count(pos, from) == 2 {
+                                    ret.push(pos);
+                                }
+                            }
+                        }
+                        for x in (from.0 + 1)..9 {
+                            let pos = (x, from.1);
+                            if !self.has_friend_at(side, pos) {
+                                if self.piece_count(from, pos) == 2 {
+                                    ret.push(pos);
+                                }
+                            }
+                        }
+                        for y in 0..(from.1) {
+                            let pos = (from.0, y);
+                            if !self.has_friend_at(side, pos) {
+                                if self.piece_count(pos, from) == 2 {
+                                    ret.push(pos);
+                                }
+                            }
+                        }
+                        for y in (from.1 + 1)..10 {
+                            let pos = (from.0, y);
+                            if !self.has_friend_at(side, pos) {
+                                if self.piece_count(from, pos) == 2 {
+                                    ret.push(pos);
+                                }
+                            }
+                        }
+                    }
+                    Piece::帥 => {
+                        let left_down = match side {
+                            Side::Red => (3usize, 0usize),
+                            Side::Black => (3usize, 7usize),
+                        };
+                        let right_up = match side {
+                            Side::Red => (5usize, 2usize),
+                            Side::Black => (5usize, 9usize),
+                        };
+                        let pos = (from.0, from.1 + 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0, from.1 - 1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 + 1, from.1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        let pos = (from.0 - 1, from.1);
+                        if position_inside(pos, left_down, right_up)
+                            && !self.has_friend_at(side, pos)
+                        {
+                            ret.push(pos);
+                        }
+                        for y in 0..10 {
+                            let pos = (from.0, y);
+                            if self.has_enemy_at(side, pos) {
+                                let target = self.m_map[pos.0][pos.1].unwrap().1;
+                                match target {
+                                    Piece::帥 => match side {
+                                        Side::Red => {
+                                            if self.piece_count(from, pos) == 2 {
+                                                ret.push(pos);
+                                            }
+                                        }
+                                        Side::Black => {
+                                            if self.piece_count(pos, from) == 2 {
+                                                ret.push(pos);
+                                            }
+                                        }
+                                    },
+                                    _ => (),
+                                }
+                            }
+                        }
+                    }
                 }
                 return ret;
             }
