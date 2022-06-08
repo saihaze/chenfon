@@ -1,3 +1,4 @@
+use crate::evaluator::*;
 use crate::game::*;
 use rand::prelude::*;
 
@@ -13,12 +14,12 @@ pub struct RandomController {}
 impl RandomController {
     /// 構建
     pub fn new() -> RandomController {
-        RandomController {  }
+        RandomController {}
     }
 }
 
 impl Controller for RandomController {
-    fn decide(&self, side: Side,  board: &Board) -> Option<((i32, i32), (i32, i32))> {
+    fn decide(&self, side: Side, board: &Board) -> Option<((i32, i32), (i32, i32))> {
         let mut froms: Vec<(i32, i32)> = Vec::new();
         for x in 0..9 {
             for y in 0..10 {
@@ -42,6 +43,59 @@ impl Controller for RandomController {
             tos.shuffle(&mut rng);
             let to = tos.first().unwrap().clone();
             Some((from, to))
+        }
+    }
+}
+
+/// AI 控制器
+#[derive(Debug)]
+pub struct AIController<EvaluatorT>
+where
+    EvaluatorT: Evaluator,
+{
+    evaluator: EvaluatorT,
+}
+
+impl<EvaluatorT> AIController<EvaluatorT>
+where
+    EvaluatorT: Evaluator,
+{
+    /// 構建
+    pub fn new(evaluator: EvaluatorT) -> AIController<EvaluatorT> {
+        AIController { evaluator }
+    }
+}
+
+impl<EvaluatorT> Controller for AIController<EvaluatorT>
+where
+    EvaluatorT: Evaluator
+{
+    fn decide(&self, side: Side, board: &Board) -> Option<((i32, i32), (i32, i32))> {
+        let mut board = board.clone();
+        let mut score = -100000;
+        let mut ret = ((0, 0), (0, 0));
+        for x in 0..9 {
+            for y in 0..10 {
+                let from = (x, y);
+                if !board.has_friend_at(side, from) {
+                    continue;
+                }
+                let steps = board.all_possible_moves(from);
+                for to in steps {
+                    board.do_move_unchecked(from, to);
+                    let v = -self.evaluator.evaluate(side.other(), &board);
+                    if v > score {
+                        score = v;
+                        ret = (from, to);
+                    }
+                    board.undo_move().unwrap();
+                }
+            }
+        }
+        if score == -100000 {
+            None
+        } else {
+            Some(ret)
         }
     }
 }

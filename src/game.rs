@@ -50,13 +50,13 @@ pub fn piece_relative_score(side: Side, piece: Option<(Side, Piece)>) -> i32 {
     match piece {
         Some(piece) => {
             let abs_value = match piece.1 {
-                Piece::兵 => 1,
-                Piece::仕 => 3,
-                Piece::相 => 3,
-                Piece::炮 => 5,
-                Piece::馬 => 5,
-                Piece::車 => 10,
-                Piece::帥 => 100,
+                Piece::兵 => 10,
+                Piece::仕 => 30,
+                Piece::相 => 30,
+                Piece::炮 => 50,
+                Piece::馬 => 50,
+                Piece::車 => 100,
+                Piece::帥 => 1000,
             };
             if side == piece.0 {
                 abs_value
@@ -78,11 +78,7 @@ struct UndoMoveRecord {
 }
 
 /// 檢查某位置是否在給定範圍內
-fn position_inside(
-    pos: (i32, i32),
-    left_down: (i32, i32),
-    right_up: (i32, i32),
-) -> bool {
+fn position_inside(pos: (i32, i32), left_down: (i32, i32), right_up: (i32, i32)) -> bool {
     debug_assert!(left_down.0 <= right_up.0 && left_down.1 <= right_up.1);
     pos.0 >= left_down.0 && pos.0 <= right_up.0 && pos.1 >= left_down.1 && pos.1 <= right_up.1
 }
@@ -97,6 +93,8 @@ pub struct Board {
     map: [[Option<(Side, Piece)>; 10]; 9],
     undo_move_records: Vec<UndoMoveRecord>,
     move_count: u32,
+    game_finished: bool,
+    winner: Option<Side>,
 }
 
 impl Board {
@@ -141,6 +139,8 @@ impl Board {
             map: map,
             undo_move_records: Vec::new(),
             move_count: 0,
+            game_finished: false,
+            winner: None,
         }
     }
 
@@ -556,11 +556,19 @@ impl Board {
     pub fn do_move_unchecked(&mut self, from: (i32, i32), to: (i32, i32)) {
         debug_assert!(position_inside_board(from));
         debug_assert!(position_inside_board(to));
-
         self.move_count += 1;
+        if self.has_piece_at(to) {
+            if self.map[to.0 as usize][to.1 as usize].unwrap().1 == Piece::帥 {
+                self.game_finished = true;
+                self.winner = Some(self.map[to.0 as usize][to.1 as usize].unwrap().0.other());
+            }
+        }
+        if self.move_count >= 2000 {
+            self.game_finished = true;
+        }
         self.undo_move_records.push(UndoMoveRecord {
             from_pos: from,
-            from_piece: self.map[from.0 as usize][to.0 as usize],
+            from_piece: self.map[from.0 as usize][from.1 as usize],
             to_pos: to,
             to_piece: self.map[to.0 as usize][to.1 as usize],
         });
@@ -568,9 +576,19 @@ impl Board {
         self.map[from.0 as usize][from.1 as usize] = None;
     }
 
+    // 遊戲是否結束
+    pub fn finished(&self) -> bool {
+        self.game_finished
+    }
+
     /// 獲取地圖
     pub fn get_map(&self) -> &[[Option<(Side, Piece)>; 10]; 9] {
         &self.map
+    }
+
+    /// 獲取贏家
+    pub fn get_winner(&self) -> Option<Side> {
+        self.winner
     }
 
     /// 查詢某處是否有己方棋子
@@ -603,6 +621,9 @@ impl Board {
             let record = self.undo_move_records.pop().unwrap();
             self.map[record.from_pos.0 as usize][record.from_pos.1 as usize] = record.from_piece;
             self.map[record.to_pos.0 as usize][record.to_pos.1 as usize] = record.to_piece;
+            self.game_finished = false;
+            self.winner = None;
+            self.move_count -= 1;
             Ok(())
         }
     }
