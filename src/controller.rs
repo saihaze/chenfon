@@ -1,4 +1,6 @@
-use crate::evaluator::*;
+use std::io::stdin;
+
+use crate::ai::*;
 use crate::game::*;
 use rand::prelude::*;
 
@@ -47,55 +49,71 @@ impl Controller for RandomController {
     }
 }
 
-/// AI 控制器
-#[derive(Debug)]
 pub struct AIController<EvaluatorT>
 where
     EvaluatorT: Evaluator,
 {
     evaluator: EvaluatorT,
+    max_node_count: u32,
 }
 
 impl<EvaluatorT> AIController<EvaluatorT>
 where
     EvaluatorT: Evaluator,
 {
-    /// 構建
-    pub fn new(evaluator: EvaluatorT) -> AIController<EvaluatorT> {
-        AIController { evaluator }
+    pub fn new(evaluator: EvaluatorT, max_node_count: u32) -> Self {
+        Self {
+            evaluator,
+            max_node_count,
+        }
     }
 }
 
 impl<EvaluatorT> Controller for AIController<EvaluatorT>
 where
-    EvaluatorT: Evaluator
+    EvaluatorT: Evaluator,
 {
     fn decide(&self, side: Side, board: &Board) -> Option<((i32, i32), (i32, i32))> {
-        let mut board = board.clone();
-        let mut score = -100000;
-        let mut ret = ((0, 0), (0, 0));
-        for x in 0..9 {
-            for y in 0..10 {
-                let from = (x, y);
-                if !board.has_friend_at(side, from) {
-                    continue;
-                }
-                let steps = board.all_possible_moves(from);
-                for to in steps {
-                    board.do_move_unchecked(from, to);
-                    let v = -self.evaluator.evaluate(side.other(), &board);
-                    if v > score {
-                        score = v;
-                        ret = (from, to);
+        let mut mboard = board.clone();
+        let mut current_node_count = 0;
+        let mut step = max_search(
+            1,
+            &mut current_node_count,
+            self.max_node_count,
+            &mut mboard,
+            side,
+            &self.evaluator,
+            std::f32::NEG_INFINITY,
+            std::f32::INFINITY,
+        );
+        match step {
+            Some(_) => {
+                for depth in 0..100 {
+                    mboard = board.clone();
+                    current_node_count = 0;
+                    let nstep = max_search(
+                        depth,
+                        &mut current_node_count,
+                        self.max_node_count,
+                        &mut mboard,
+                        side,
+                        &self.evaluator,
+                        std::f32::NEG_INFINITY,
+                        std::f32::INFINITY,
+                    );
+                    match nstep {
+                        Some(_) => {
+                            step = nstep;
+                            continue;
+                        }
+                        None => {
+                            break;
+                        }
                     }
-                    board.undo_move().unwrap();
                 }
+                Some(step.unwrap().step.unwrap().clone())
             }
-        }
-        if score == -100000 {
-            None
-        } else {
-            Some(ret)
+            None => None,
         }
     }
 }
