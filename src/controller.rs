@@ -1,5 +1,3 @@
-use std::io::stdin;
-
 use crate::ai::*;
 use crate::game::*;
 use rand::prelude::*;

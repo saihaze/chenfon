@@ -21,16 +21,81 @@ impl ShortSightedEvaluator {
     pub fn new() -> Self {
         Self {}
     }
+
+    // 前中期估價單個棋子
+    fn evaluate_single_piece_1(board: &Board, side: Side, pos: (i32, i32)) -> i32 {
+        let piece = board.get_map()[pos.0 as usize][pos.1 as usize];
+        match piece {
+            Some(piece) => {
+                let abs_value = match piece.1 {
+                    Piece::兵 => 10,
+                    Piece::仕 => 30,
+                    Piece::相 => 30,
+                    Piece::炮 => 55,
+                    Piece::馬 => 50,
+                    Piece::車 => 100,
+                    Piece::帥 => 1000,
+                };
+                if side == piece.0 {
+                    abs_value
+                } else {
+                    -abs_value
+                }
+            }
+            None => 0,
+        }
+    }
+
+    // 殘局估價單個棋子
+    fn evaluate_single_piece_2(board: &Board, side: Side, pos: (i32, i32)) -> i32 {
+        let piece = board.get_map()[pos.0 as usize][pos.1 as usize];
+        match piece {
+            Some(piece) => {
+                let abs_value = match piece.1 {
+                    Piece::兵 => 10,
+                    Piece::仕 => 30,
+                    Piece::相 => 30,
+                    Piece::炮 => 50,
+                    Piece::馬 => 55,
+                    Piece::車 => 100,
+                    Piece::帥 => 1000,
+                };
+                if side == piece.0 {
+                    abs_value
+                } else {
+                    -abs_value
+                }
+            }
+            None => 0,
+        }
+    }
 }
 
 impl Evaluator for ShortSightedEvaluator {
     fn evaluate(&self, board: &Board, side: Side) -> f32 {
         let mut score = 0;
-        let map = board.get_map();
-        for col in map {
-            for piece in col {
-                score += piece_relative_score(side, piece.clone());
+        if board.piece_count_of_board() <= 16 {
+            for x in 0..9 {
+                for y in 0..10 {
+                    score += Self::evaluate_single_piece_1(board, side, (x, y));
+                }
             }
+        } else {
+            for x in 0..9 {
+                for y in 0..10 {
+                    score += Self::evaluate_single_piece_2(board, side, (x, y));
+                }
+            }
+        }
+        if side == Side::Red && board.get_map()[4][3] == Some((Side::Red, Piece::兵))
+            || side == Side::Black && board.get_map()[4][3] == Some((Side::Black, Piece::兵))
+        {
+            score += 10;
+        }
+        if side == Side::Red && board.get_map()[4][3] == Some((Side::Black, Piece::兵))
+            || side == Side::Black && board.get_map()[4][3] == Some((Side::Red, Piece::兵))
+        {
+            score -= 10;
         }
         score as f32 / 4000.0f32 + 0.5f32
     }

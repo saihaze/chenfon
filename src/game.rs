@@ -45,29 +45,6 @@ pub fn piece_relative_id(side: Side, piece: Option<(Side, Piece)>) -> i32 {
     }
 }
 
-/// 獲取某處棋子相對分數（己方爲正，對方爲負）
-pub fn piece_relative_score(side: Side, piece: Option<(Side, Piece)>) -> i32 {
-    match piece {
-        Some(piece) => {
-            let abs_value = match piece.1 {
-                Piece::兵 => 10,
-                Piece::仕 => 30,
-                Piece::相 => 30,
-                Piece::炮 => 50,
-                Piece::馬 => 50,
-                Piece::車 => 100,
-                Piece::帥 => 1000,
-            };
-            if side == piece.0 {
-                abs_value
-            } else {
-                -abs_value
-            }
-        }
-        None => 0,
-    }
-}
-
 /// 記錄走子歷史，以便悔棋
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct UndoMoveRecord {
@@ -95,6 +72,7 @@ pub struct Board {
     move_count: u32,
     game_finished: bool,
     winner: Option<Side>,
+    sum_piece: i32,
 }
 
 impl Board {
@@ -141,6 +119,7 @@ impl Board {
             move_count: 0,
             game_finished: false,
             winner: None,
+            sum_piece: 0,
         }
     }
 
@@ -500,7 +479,17 @@ impl Board {
                         }
                     }
                 }
-                return ret;
+                if self.looped() {
+                    debug_assert!(self.undo_move_records.len() >= 4);
+                    return ret.into_iter().filter(|to| {
+                        let records = &self.undo_move_records;
+                        let len = records.len();
+                        from != records[len - 4].from_pos
+                            || to.clone() != records[len - 4].to_pos
+                    }).collect();
+                } else {
+                    return ret;
+                }
             }
             None => {
                 return Vec::new();
@@ -572,6 +561,9 @@ impl Board {
             to_pos: to,
             to_piece: self.map[to.0 as usize][to.1 as usize],
         });
+        if self.map[to.0 as usize][to.1 as usize].is_some() {
+            self.sum_piece -= 1;
+        }
         self.map[to.0 as usize][to.1 as usize] = self.map[from.0 as usize][from.1 as usize];
         self.map[from.0 as usize][from.1 as usize] = None;
     }
@@ -613,6 +605,24 @@ impl Board {
         }
     }
 
+    /// 最後四步是否循環
+    pub fn looped(&self) -> bool {
+        let records = &self.undo_move_records;
+        if records.len() >= 4 {
+            let len = records.len();
+            records[len - 4].to_piece.is_none()
+                && records[len - 3].to_piece.is_none()
+                && records[len - 2].to_piece.is_none()
+                && records[len - 1].to_piece.is_none()
+                && records[len - 4].from_pos == records[len - 2].to_pos
+                && records[len - 4].to_pos == records[len - 2].from_pos
+                && records[len - 3].from_pos == records[len - 1].to_pos
+                && records[len - 3].to_pos == records[len - 1].from_pos
+        } else {
+            false
+        }
+    }
+
     // 撤銷移動
     pub fn undo_move(&mut self) -> Result<(), ()> {
         if self.undo_move_records.len() == 0 {
@@ -624,12 +634,18 @@ impl Board {
             self.game_finished = false;
             self.winner = None;
             self.move_count -= 1;
+            if record.to_piece.is_some() {
+                self.sum_piece += 1;
+            }
             Ok(())
         }
     }
 
     /// 獲取某範圍內棋子數目
     pub fn piece_count(&self, left_down: (i32, i32), right_up: (i32, i32)) -> i32 {
+        if left_down == (0, 0) && right_up == (8, 9) {
+            return self.piece_count_of_board();
+        }
         let mut cnt = 0;
         for x in left_down.0..(right_up.0 + 1) {
             for y in left_down.1..(right_up.1 + 1) {
@@ -642,5 +658,10 @@ impl Board {
             }
         }
         cnt
+    }
+
+    /// 獲取整個棋盤中棋子個數
+    pub fn piece_count_of_board(&self) -> i32 {
+        self.sum_piece
     }
 }
